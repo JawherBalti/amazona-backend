@@ -2,9 +2,9 @@ const { Order } = require("../models/order");
 const { Product } = require("../models/product");
 const { User } = require("../models/user");
 
-const placeOrder = (req, res) => {
-  console.log(req);
+const PAGE_SIZE = 9;
 
+const placeOrder = (req, res) => {
   if (req.body.orderItems.length === 0) {
     res.status(400).send({ message: "Cart is empty" });
   } else {
@@ -27,10 +27,100 @@ const placeOrder = (req, res) => {
   }
 };
 
-const getOrders = (req, res) => {
-  Order.find()
-    .then((orders) => res.send(orders))
-    .catch((err) => res.status(404).send({ message: "Orders not found!" }));
+const myOrderList = async (req, res) => {
+  const { query } = req;
+  const page = parseInt(query.page) || 1;
+  const pageSize = parseInt(query.pageSize) || PAGE_SIZE;
+  const searchTerm = query.searchTerm;
+  const sortBy = query.sortBy || 'createdAt';
+  const order = query.order === 'desc' ? -1 : 1;
+
+  const skip = pageSize * (page - 1);
+
+  let filterQuery = { user: req.user._id }; // Always filter by the logged-in user's ID
+
+  if (searchTerm && /^[a-f\d]{24}$/i.test(searchTerm)) {
+    filterQuery._id = searchTerm;
+  }
+
+  if (!isNaN(searchTerm)) {
+    filterQuery.totalPrice = { $gt: searchTerm };
+  }
+
+  try {
+    const totalOrders = await Order.countDocuments(filterQuery);
+    
+    const orders = await Order.find(filterQuery)
+      .skip(skip)
+      .limit(pageSize)
+      .sort({ [sortBy]: order });
+
+    res.status(200).json({
+      orders,
+      page,
+      pages: Math.ceil(totalOrders / pageSize),
+      totalOrders,
+      sortBy,
+      order
+    });
+  } catch (error) {
+    console.error('Error fetching orders:', error);
+    res.status(500).json({ message: 'Error fetching orders', error: error.message });
+  }
+};
+
+const getOrders = async (req, res) => {
+  const page = Number(req.query.page) || 1;
+  let pageSize = Number(req.query.pageSize) || PAGE_SIZE;
+  const searchTerm = req.query.searchTerm || "";
+  const sortField = req.query.sortBy || "totalPrice";
+  const sortOrder = req.query.order === "desc" ? -1 : 1;
+
+  let queryOptions = {};
+  let skip = pageSize * (page - 1);
+
+  if (searchTerm) {
+    try {
+      // Check if searchTerm looks like a MongoDB ObjectId
+
+      if (/^[a-f\d]{24}$/i.test(searchTerm)) {
+        queryOptions._id = searchTerm;
+        skip = 0;
+        pageSize = 1;
+      } else if (!isNaN(searchTerm)) {
+        // Search by `totalPrice` if `searchTerm` is numeric
+        queryOptions.totalPrice = { $gt: Number(searchTerm) };
+      } else {
+        queryOptions.$or = [
+          { "shippingAddress.name": { $regex: searchTerm, $options: "i" } },
+        ];
+      }
+    } catch (err) {
+      res.status(400).json({ message: "Invalid product ID" });
+      return;
+    }
+  }
+
+  const sortOptions = {};
+  sortOptions[sortField] = sortOrder;
+
+  // Count total users for pagination
+  const totalOrders = await Order.countDocuments(queryOptions);
+
+  // Fetch paginated, sorted, and filtered users
+  const orders = await Order.find(queryOptions)
+    .skip(skip)
+    .limit(pageSize)
+    .sort(sortOptions);
+
+  res.status(200).json({
+    orders,
+    countOrders: totalOrders,
+    page,
+    pages: Math.ceil(totalOrders / pageSize),
+    sortBy: sortField,
+    order: sortOrder === -1 ? "desc" : "asc",
+  });
 };
 
 const getOrder = (req, res) => {
@@ -76,12 +166,6 @@ const deliverOrder = (req, res) => {
     .catch((err) => res.status(404).send({ message: "Order not found!" }));
 };
 
-const myOrderList = (req, res) => {
-  Order.find({ user: req.user._id })
-    .then((orders) => res.send(orders))
-    .catch((err) => res.status(404).send({ message: "Not Found" }));
-};
-
 const deleteOrder = (req, res) => {
   Order.findByIdAndDelete(req.params.id)
     .then((order) => res.send({ message: "Order deleted successfully!" }))
@@ -91,43 +175,8 @@ const deleteOrder = (req, res) => {
 };
 
 const getSummary = async (req, res) => {
-  const orders = await Order.aggregate([
-    {
-      $group: {
-        _id: null,
-        numOrders: { $sum: 1 },
-        totalSales: { $sum: "$totalPrice" },
-      },
-    },
-  ]);
-  const users = await User.aggregate([
-    {
-      $group: {
-        _id: null,
-        numUsers: { $sum: 1 },
-      },
-    },
-  ]);
-  const dailyOrders = await Order.aggregate([
-    {
-      $group: {
-        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
-        orders: { $sum: 1 },
-        sales: { $sum: "$totalPrice" },
-      },
-    },
-    { $sort: { _id: 1 } },
-  ]);
-  const productCategories = await Product.aggregate([
-    {
-      $group: {
-        _id: "$category",
-        count: { $sum: 1 },
-      },
-    },
-  ]);
-  res.send({ users, orders, dailyOrders, productCategories });
-};
+  
+}
 
 module.exports = {
   placeOrder,
@@ -137,5 +186,5 @@ module.exports = {
   myOrderList,
   deleteOrder,
   deliverOrder,
-  getSummary
+  getSummary,
 };
