@@ -4,6 +4,7 @@ const dotenv = require('dotenv')
 const userRoute = require('./routes/user')
 const orderRoute = require('./routes/order')
 const productRoute = require('./routes/product')
+const uploadRoute = require('./routes/upload')
 const http = require('http')
 const socketio = require('socket.io')
 const cors = require("cors")
@@ -24,6 +25,7 @@ app.get('/api/config/paypal', (req, res) => {
     res.send(process.env.PAYPAL_CLIENT_ID || 'sb')
 })
 
+app.use('/api/upload', uploadRoute);
 app.use('/api/user', userRoute)
 app.use('/api/order', orderRoute)
 app.use('/api/products', productRoute)
