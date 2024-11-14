@@ -50,7 +50,7 @@ const io = socketio(httpServer, {
         methods: ["GET", "POST"],
         credentials: true
     },
-    transports: ["polling", "websocket"], // Allow both polling and websocket
+    transports: ["polling"], // Allow both polling and websocket
 });
 
 const users = []
