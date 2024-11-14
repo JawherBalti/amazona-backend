@@ -16,7 +16,7 @@ const app = express()
 app.use(express.json())
 
 app.use(cors({
-    origin: ['https://amazona-client.vercel.app'], // Allow requests from this origin
+    origin: ['https://amazona-client.vercel.app', 'http://localhost:3000'], // Allow requests from this origin
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
   }));
@@ -37,8 +37,9 @@ const httpServer = http.createServer(app)
 
 const io = new Server(httpServer, {
     cors: {
-        origin: "https://amazona-client.vercel.app", // Specific frontend origin
+        origin: ['https://amazona-client.vercel.app', 'http://localhost:3000'], // Allow requests from this origin
         methods: ["GET", "POST"],
+        allowedHeaders: ["Content-Type", "Access-Control-Allow-Origin"],
     }
 });
 
