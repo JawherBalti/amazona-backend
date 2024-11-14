@@ -6,7 +6,7 @@ const orderRoute = require('./routes/order')
 const productRoute = require('./routes/product')
 const uploadRoute = require('./routes/upload')
 const http = require('http')
-const {Server} = require('socket.io')
+const socketio = require('socket.io')
 const cors = require("cors")
 
 dotenv.config()
@@ -35,7 +35,7 @@ const db_uri = process.env.MONGO_URI
 
 const httpServer = http.createServer(app)
 
-const io = new Server(httpServer, {
+const io = socketio(httpServer, {
     cors: {
         origin: ['https://amazona-client.vercel.app', 'http://localhost:3000'], // Allow requests from this origin
         methods: ["GET", "POST"],
