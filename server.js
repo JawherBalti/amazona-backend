@@ -35,11 +35,20 @@ const db_uri = process.env.MONGO_URI
 
 const httpServer = http.createServer(app)
 
+// CORS middleware for Express
+app.use((req, res, next) => {
+    res.setHeader("Access-Control-Allow-Origin", "https://amazona-client.vercel.app");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    next();
+});
+
 const io = socketio(httpServer, {
     cors: {
-        origin: ['https://amazona-client.vercel.app', 'http://localhost:3000'], // Allow requests from this origin
+        origin: "https://amazona-client.vercel.app", // Specific frontend origin
         methods: ["GET", "POST"],
-        allowedHeaders: ["Content-Type", "Access-Control-Allow-Origin"],
+        credentials: true
     }
 });
 
