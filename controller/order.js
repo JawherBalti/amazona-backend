@@ -175,8 +175,135 @@ const deleteOrder = (req, res) => {
 };
 
 const getSummary = async (req, res) => {
-  
-}
+  const orders = await Order.aggregate([
+    {
+      $group: {
+        _id: null,
+        numOrders: { $sum: 1 },
+        totalSales: { $sum: "$totalPrice" },
+      },
+    },
+  ]);
+
+  const users = await User.aggregate([
+    {
+      $group: {
+        _id: null,
+        numUsers: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const dailyOrders = await Order.aggregate([
+    {
+      $group: {
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+        orders: { $sum: 1 },
+        sales: { $sum: "$totalPrice" },
+      },
+    },
+    { $sort: { _id: 1 } },
+  ]);
+
+  const productCategories = await Product.aggregate([
+    {
+      $group: {
+        _id: "$category",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const categorySales = await Order.aggregate([
+    {
+      $unwind: "$orderItems",
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "orderItems.product",
+        foreignField: "_id",
+        as: "productInfo",
+      },
+    },
+    {
+      $unwind: "$productInfo",
+    },
+    {
+      $group: {
+        _id: "$productInfo.category",
+        totalCategorySales: {
+          $sum: { $multiply: ["$orderItems.qty", "$orderItems.price"] },
+        },
+      },
+    },
+  ]);
+
+  const productSales = await Order.aggregate([
+    {
+      $unwind: "$orderItems",
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "orderItems.product",
+        foreignField: "_id",
+        as: "productInfo",
+      },
+    },
+    {
+      $unwind: "$productInfo",
+    },
+    {
+      $group: {
+        _id: "$productInfo.name",
+        totalSales: {
+          $sum: { $multiply: ["$orderItems.qty", "$orderItems.price"] },
+        },
+      },
+    },
+    {
+      $sort: { totalSales: -1 },
+    },
+  ]);
+
+  const quantitySales = await Order.aggregate([
+    {
+      $unwind: "$orderItems",
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "orderItems.product",
+        foreignField: "_id",
+        as: "productInfo",
+      },
+    },
+    {
+      $unwind: "$productInfo",
+    },
+    {
+      $group: {
+        _id: "$productInfo.name",
+        totalQuantity: { $sum: "$orderItems.qty" },
+        averagePrice: { $avg: "$orderItems.price" },
+      },
+    },
+    {
+      $sort: { totalQuantity: -1 },
+    },
+  ]);
+
+  res.send({
+    users,
+    orders,
+    dailyOrders,
+    productCategories,
+    categorySales,
+    productSales,
+    quantitySales,
+  });
+};
 
 module.exports = {
   placeOrder,
