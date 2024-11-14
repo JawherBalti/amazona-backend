@@ -36,8 +36,9 @@ const db_uri = process.env.MONGO_URI
 const httpServer = http.createServer(app)
 const io = socketio(httpServer, {
     cors: {
-        origin: "https://amazona-client.vercel.app", // Allow requests only from this origin
+        origin: "https://amazona-client.vercel.app", // Specific frontend origin
         methods: ["GET", "POST"],
+        allowedHeaders: ["Content-Type", "Authorization"],
         credentials: true
     }
 });
