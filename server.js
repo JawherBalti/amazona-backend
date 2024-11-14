@@ -36,10 +36,12 @@ const db_uri = process.env.MONGO_URI
 const httpServer = http.createServer(app)
 const io = socketio(httpServer, {
     cors: {
-      origin: 'https://amazona-client.vercel.app',
-      methods: ['GET', 'POST', 'PUT', 'DELETE'],
+        origin: "https://amazona-client.vercel.app", // Allow requests only from this origin
+        methods: ["GET", "POST"],
+        credentials: true
     }
-  });
+});
+
 const users = []
 
 mongoose.connect(db_uri, {
