@@ -46,10 +46,11 @@ app.use((req, res, next) => {
 
 const io = socketio(httpServer, {
     cors: {
-        origin: "https://amazona-client.vercel.app", // Specific frontend origin
+        origin: "https://amazona-client.vercel.app",
         methods: ["GET", "POST"],
         credentials: true
-    }
+    },
+    transports: ["polling", "websocket"], // Allow both polling and websocket
 });
 
 const users = []
