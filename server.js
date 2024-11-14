@@ -16,7 +16,7 @@ const app = express()
 app.use(express.json())
 
 app.use(cors({
-    origin: ['*'], // Allow requests from this origin
+    origin: ['https://amazona-client.vercel.app'], // Allow requests from this origin
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization']
   }));
@@ -34,8 +34,12 @@ const port = process.env.PORT || 5000
 const db_uri = process.env.MONGO_URI
 
 const httpServer = http.createServer(app)
-const io = socketio(httpServer, { cors: { origin: '*' } })
-
+const io = socketio(httpServer, {
+    cors: {
+      origin: 'https://amazona-client.vercel.app',
+      methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    }
+  });
 const users = []
 
 mongoose.connect(db_uri, {
